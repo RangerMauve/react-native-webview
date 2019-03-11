@@ -85,6 +85,7 @@ import com.reactnativecommunity.webview.events.TopLoadingStartEvent;
 import com.reactnativecommunity.webview.events.TopMessageEvent;
 import com.reactnativecommunity.webview.events.TopLoadingProgressEvent;
 import com.reactnativecommunity.webview.events.TopShouldStartLoadWithRequestEvent;
+import com.reactnativecommunity.webview.events.TopUrlSchemeRequestEvent;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -315,10 +316,6 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
     public void setUrlPrefixesForDefaultIntent(ReadableArray specialUrls) {
       mUrlPrefixesForDefaultIntent = specialUrls;
-    }
-
-    public void setOriginWhitelist(List<Pattern> originWhitelist) {
-      mOriginWhitelist = originWhitelist;
     }
 
     public void setIsOnUrlSchemeRequestEnabled(boolean isOnUrlSchemeRequestEnabled) {
@@ -989,20 +986,6 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     view.getSettings().setGeolocationEnabled(isGeolocationEnabled != null && isGeolocationEnabled);
   }
 
-  @ReactProp(name = "originWhitelist")
-  public void setOriginWhitelist(
-    WebView view,
-    @Nullable ReadableArray originWhitelist) {
-    RNCWebViewClient client = ((RNCWebView) view).getRNCWebViewClient();
-    if (client != null && originWhitelist != null) {
-      List<Pattern> whiteList = new LinkedList<>();
-      for (int i = 0 ; i < originWhitelist.size() ; i++) {
-        whiteList.add(Pattern.compile(originWhitelist.getString(i)));
-      }
-      client.setOriginWhitelist(whiteList);
-    }
-  }
-
   @ReactProp(name = "onUrlSchemeRequest")
   public void setOnUrlSchemeRequest(
     WebView webView,
@@ -1043,7 +1026,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
   @Override
   public @Nullable Map<String, Integer> getCommandsMap() {
-    Map<String, Integer> commandMap = MapBuilder.newHashMap()
+    Map<String, Integer> commandMap = MapBuilder.newHashMap();
 
     commandMap.put("goBack", COMMAND_GO_BACK);
     commandMap.put("goForward", COMMAND_GO_FORWARD);
@@ -1096,7 +1079,8 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
         RNCWebView reactWebView = (RNCWebView) root;
         reactWebView.evaluateJavascriptWithFallback(args.getString(0));
         break;
-      case COMMAND_LOAD_URL:
+      }
+      case COMMAND_LOAD_URL: {
         if (args == null) {
           throw new RuntimeException("Arguments for loading an url are null!");
         }
