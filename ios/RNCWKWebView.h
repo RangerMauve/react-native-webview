@@ -8,6 +8,7 @@
 #import <React/RCTView.h>
 #import <React/RCTDefines.h>
 #import <WebKit/WebKit.h>
+#import "RNCWKSchemeHandler.h"
 
 @class RNCWKWebView;
 
@@ -46,6 +47,8 @@
 @property (nonatomic, assign) BOOL showsHorizontalScrollIndicator;
 @property (nonatomic, assign) BOOL showsVerticalScrollIndicator;
 @property (nonatomic, assign) BOOL directionalLockEnabled;
+@property (nonatomic, copy) NSString *urlScheme;
+@property (nonatomic, strong) RNCWKSchemeHandler* schemeHandler;
 
 + (void)setClientAuthenticationCredential:(nullable NSURLCredential*)credential;
 - (void)postMessage:(NSString *)message;
@@ -54,5 +57,7 @@
 - (void)goBack;
 - (void)reload;
 - (void)stopLoading;
+- (void)handleUrlSchemeResponse:(NSDictionary *)resp;
+- (void)handleUrlSchemeRequest:(NSDictionary *)req;
 
 @end

@@ -72,9 +72,10 @@ repositories {
       name androidSourcesName
     }
 
-    logger.quiet(":${project.name}:reactNativeAndroidRoot ${defaultDir.canonicalPath}")
-    found = true
-  } else {
+    maven { url "https://jitpack.io" }
+
+    // Stolen from react-native-firebase, thanks dudes!
+    def found = false
     def parentDir = rootProject.projectDir
 
     1.upto(5, {

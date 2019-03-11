@@ -38,6 +38,7 @@ import type {
   WebViewSharedProps,
   WebViewSource,
   WebViewProgressEvent,
+  WebViewUrlSchemeRequest,
 } from './WebViewTypes';
 
 const resolveAssetSource = Image.resolveAssetSource;
@@ -287,6 +288,8 @@ class WebView extends React.Component<WebViewSharedProps, State> {
         showsHorizontalScrollIndicator={this.props.showsHorizontalScrollIndicator}
         showsVerticalScrollIndicator={this.props.showsVerticalScrollIndicator}
         directionalLockEnabled={this.props.directionalLockEnabled}
+        urlScheme={this.props.urlScheme}
+        onUrlSchemeRequest={this._onUrlSchemeRequest}
         {...nativeConfig.props}
       />
     );
@@ -459,6 +462,22 @@ class WebView extends React.Component<WebViewSharedProps, State> {
     invariant(viewManager != null, 'viewManager expected to be non-null');
     viewManager.startLoadWithResult(!!shouldStart, lockIdentifier);
   };
+
+  _onUrlSchemeRequest = (event: WebViewUrlSchemeRequestEvent) => {
+    const {onUrlSchemeRequest} = this.props;
+    if (!onUrlSchemeRequest) {
+      throw new Error("Must provide `onUrlSchemeRequest` if you provide `urlScheme`.");
+    }
+    const { requestId } = event.nativeEvent
+    onUrlSchemeRequest(event.nativeEvent)
+      .then((response) => {
+        UIManager.dispatchViewManagerCommand(
+          this.getWebViewHandle(),
+          this._getCommands().handleUrlSchemeResponse,
+          [{...response, requestId}],
+        );
+      })
+  }
 
   componentDidUpdate(prevProps: WebViewSharedProps) {
     if (!(prevProps.useWebKit && this.props.useWebKit)) {

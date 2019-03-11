@@ -171,6 +171,8 @@ class WebView extends React.Component<WebViewSharedProps, State> {
         onLoadingFinish={this.onLoadingFinish}
         onLoadingError={this.onLoadingError}
         onLoadingProgress={this.onLoadingProgress}
+        onUrlSchemeRequest={this.onUrlSchemeRequest}
+        baseInterceptUrl={this.props.baseInterceptUrl}
         testID={this.props.testID}
         geolocationEnabled={this.props.geolocationEnabled}
         mediaPlaybackRequiresUserAction={
@@ -326,6 +328,61 @@ class WebView extends React.Component<WebViewSharedProps, State> {
         [String(url)],
       );
     }
+  };
+
+  onUrlSchemeRequest = (event: WebViewUrlSchemeRequestEvent) => {
+    const { requestId } = event.nativeEvent;
+
+    if (!requestId) {
+      console.warn("Received an onUrlSchemeRequest without a requestId", event.nativeEvent);
+      return;
+    }
+
+    const { onUrlSchemeRequest } = this.props;
+
+    if (!onUrlSchemeRequest) {
+      const data = {
+        requestId,
+        response: {
+          type: "error",
+          message: "Webview is missing required property onUrlSchemeRequest",
+        }
+      };
+
+      UIManager.dispatchViewManagerCommand(
+        this.getWebViewHandle(),
+        UIManager.RNCWebView.Commands.handleUrlSchemeResponse,
+        [data],
+      );
+
+      return;
+    }
+
+    onUrlSchemeRequest(event.nativeEvent).then(response => {
+      const data = {
+        response,
+        requestId,
+      }
+      UIManager.dispatchViewManagerCommand(
+        this.getWebViewHandle(),
+        UIManager.RNCWebView.Commands.handleUrlSchemeResponse,
+        [data],
+      );
+    }).catch(err => {
+      const data = {
+        requestId,
+        response: {
+          type: "error",
+          message: err.toString(),
+        }
+      }
+
+      UIManager.dispatchViewManagerCommand(
+        this.getWebViewHandle(),
+        UIManager.RNCWebView.Commands.handleUrlSchemeResponse,
+        [data],
+      );
+    });
   };
 }
 

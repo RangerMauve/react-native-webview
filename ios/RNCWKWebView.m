@@ -10,6 +10,7 @@
 #import <React/RCTAutoInsetsProtocol.h>
 #import "RNCWKProcessPoolManager.h"
 #import <UIKit/UIKit.h>
+#import "RNCWKSchemeHandler.h"
 
 #import "objc/runtime.h"
 
@@ -27,12 +28,13 @@ static NSURLCredential* clientAuthenticationCredential;
 }
 @end
 
-@interface RNCWKWebView () <WKUIDelegate, WKNavigationDelegate, WKScriptMessageHandler, UIScrollViewDelegate, RCTAutoInsetsProtocol>
+@interface RNCWKWebView () <WKUIDelegate, WKNavigationDelegate, WKScriptMessageHandler, UIScrollViewDelegate, RCTAutoInsetsProtocol, RNCWKSchemeHandlerDelegate>
 @property (nonatomic, copy) RCTDirectEventBlock onLoadingStart;
 @property (nonatomic, copy) RCTDirectEventBlock onLoadingFinish;
 @property (nonatomic, copy) RCTDirectEventBlock onLoadingError;
 @property (nonatomic, copy) RCTDirectEventBlock onLoadingProgress;
 @property (nonatomic, copy) RCTDirectEventBlock onShouldStartLoadWithRequest;
+@property (nonatomic, copy) RCTDirectEventBlock onUrlSchemeRequest;
 @property (nonatomic, copy) RCTDirectEventBlock onMessage;
 @property (nonatomic, copy) WKWebView *webView;
 @end
@@ -127,6 +129,12 @@ static NSURLCredential* clientAuthenticationCredential;
     wkWebViewConfig.mediaPlaybackRequiresUserAction = _mediaPlaybackRequiresUserAction;
 #endif
 
+    if (_urlScheme) {
+      self.schemeHandler = [[RNCWKSchemeHandler alloc] init];
+      [wkWebViewConfig setURLSchemeHandler:self.schemeHandler forURLScheme:_urlScheme];
+      self.schemeHandler.delegate = self;
+    }
+
     _webView = [[WKWebView alloc] initWithFrame:self.bounds configuration: wkWebViewConfig];
     _webView.scrollView.delegate = self;
     _webView.UIDelegate = self;
@@ -144,6 +152,7 @@ static NSURLCredential* clientAuthenticationCredential;
     if (_userAgent) {
       _webView.customUserAgent = _userAgent;
     }
+
 #if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000 /* __IPHONE_11_0 */
     if ([_webView.scrollView respondsToSelector:@selector(setContentInsetAdjustmentBehavior:)]) {
       _webView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
@@ -343,6 +352,19 @@ static NSURLCredential* clientAuthenticationCredential;
 {
   _scrollEnabled = scrollEnabled;
   _webView.scrollView.scrollEnabled = scrollEnabled;
+
+  // Override the scrollView delegate to prevent scrolling.
+  if (!scrollEnabled) {
+    _webView.scrollView.delegate = self;
+  } else {
+    _webView.scrollView.delegate = _webView;
+  }
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView
+{
+  // Don't allow scrolling the scrollView.
+  scrollView.bounds = _webView.bounds;
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
@@ -675,4 +697,22 @@ static NSURLCredential* clientAuthenticationCredential;
   _bounces = bounces;
   _webView.scrollView.bounces = bounces;
 }
+
+// Send event to React Native.
+- (void)handleUrlSchemeRequest:(NSDictionary *)req
+{
+  _onUrlSchemeRequest(req);
+}
+
+
+// Receive event to React Native.
+- (void)handleUrlSchemeResponse:(NSDictionary *)resp
+{
+  if (self.schemeHandler) {
+    [self.schemeHandler handleUrlSchemeResponse:resp];
+  } else {
+    RCTLogError(@"Calling handleUrlSchemeResponse without a scheme handler.");
+  }
+}
+
 @end

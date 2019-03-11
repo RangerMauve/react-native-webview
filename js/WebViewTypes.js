@@ -57,6 +57,13 @@ export type WebViewError = $ReadOnly<{|
   description: string,
 |}>;
 
+export type WebViewUrlSchemeRequest = $ReadOnly<{|
+	url: string,
+	method: string,
+	headers: { [string]: string },
+	requestId: string,
+|}>;
+
 export type WebViewEvent = SyntheticEvent<WebViewNativeEvent>;
 
 export type WebViewNavigationEvent = SyntheticEvent<WebViewNavigation>;
@@ -64,6 +71,8 @@ export type WebViewNavigationEvent = SyntheticEvent<WebViewNavigation>;
 export type WebViewMessageEvent = SyntheticEvent<WebViewMessage>;
 
 export type WebViewErrorEvent = SyntheticEvent<WebViewError>;
+
+export type WebViewUrlSchemeRequestEvent = SyntheticEvent<WebViewUrlSchemeRequest>;
 
 export type DataDetectorTypes =
   | 'phoneNumber'
@@ -77,6 +86,29 @@ export type DataDetectorTypes =
   | 'all';
 
 export type OverScrollModeType = 'always' | 'content' | 'never';
+
+export type UrlSchemeResponse = {|
+  type: "response"
+  url: string,
+  status: number,
+  headers: { [string]: string },
+  body?: ?string
+|}
+
+export type UrlSchemeFile = {|
+  type: "file"
+  file: string
+  url: string,
+  headers: { [string]: string },
+|}
+
+export type UrlSchemeRedirect = {|
+  type: "redirect"
+  url: string,
+  method: string,
+  headers: { [string]: string },
+  body?: ?string
+|}
 
 export type WebViewSourceUri = $ReadOnly<{|
   /**
@@ -260,6 +292,22 @@ export type IOSWebViewProps = $ReadOnly<{|
    * @platform ios
    */
   directionalLockEnabled?: ?boolean,
+
+	/**
+	 * Specify a url scheme to intercept.
+	 */
+	urlScheme?: ?string,
+
+	/**
+	 * Intercept a url scheme request. If you return a status, that means this is a response. If there
+   * is a method, that means that we should make the request from native code and pipe it. This is
+   * useful for requests such as images that won't encode well.
+	 */
+	onUrlSchemeRequest?: (
+		event: WebViewUrlSchemeRequest
+	) =>
+		Promise<UrlSchemeResponse | UrlSchemeRedirect | UrlSchemeFile>,
+
 |}>;
 
 export type AndroidWebViewProps = $ReadOnly<{|
@@ -359,6 +407,22 @@ export type AndroidWebViewProps = $ReadOnly<{|
    * @platform android
    */
   mixedContentMode?: ?('never' | 'always' | 'compatibility'),
+
+  /**
+   * A Base URL that is intercepted and sent through onUrlSchemeRequest. Android has a few issues
+   * with custom schemes, using a baseInterceptURL instead.
+   */
+  baseInterceptUrl?: ?string,
+
+  /**
+   * Intercept a url scheme request. If you return a status, that means this is a response. If there
+   * is a method, that means that we should make the request from native code and pipe it. This is
+   * useful for requests such as images that won't encode well.
+   */
+  onUrlSchemeRequest?: (
+    event: WebViewUrlSchemeRequest
+  ) =>
+    Promise<UrlSchemeResponse | UrlSchemeRedirect | UrlSchemeFile>,
 |}>;
 
 export type WebViewSharedProps = $ReadOnly<{|
